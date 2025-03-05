@@ -1,11 +1,16 @@
 from pydantic import BaseModel
+from autogen_core.models import LLMMessage
 
 
 class UserRequest(BaseModel):
-    session_id: str
-    description: str
+    # all user's session chat history
+    context: list[LLMMessage]
 
 
-class HumanFeedback(BaseModel):
-    session_id: str
-    feedback: str
+class AgentResponse(BaseModel):
+    reply_to_topic: str
+    context: list[LLMMessage]
+
+
+class Session(BaseModel):
+    pass

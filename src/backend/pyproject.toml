@@ -8,5 +8,6 @@ dependencies = [
     "autogen-core>=0.4.7",
     "autogen-ext[azure,grpc,openai]>=0.4.7",
     "fastapi>=0.115.8",
+    "rich>=13.9.4",
     "uvicorn>=0.34.0",
 ]

@@ -1,1 +1,0 @@
-# will use cosmos db for memory

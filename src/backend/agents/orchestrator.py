@@ -1,6 +1,8 @@
 from typing import Annotated
 from autogen_core.models import SystemMessage, ChatCompletionClient
 from autogen_core.tools import FunctionTool
+
+from context.session_manager import SessionManager
 from .ai import AIAgent
 
 
@@ -8,7 +10,11 @@ class OrchestratorAgent(AIAgent):
     """Agent that orchestrates workflows and routes users to specialized agents."""
 
     def __init__(
-        self, model_client: ChatCompletionClient, user_topic_type: str, agent_topic_type: str
+        self,
+        model_client: ChatCompletionClient,
+        user_topic_type: str,
+        agent_topic_type: str,
+        sessionManager: SessionManager,
     ) -> None:
         description = (
             "An orchestrator agent that directs users to the appropriate department"
@@ -55,6 +61,7 @@ class OrchestratorAgent(AIAgent):
             delegate_tools=delegate_tools,
             agent_topic_type=agent_topic_type,
             user_topic_type=user_topic_type,
+            sessionManager=sessionManager,
         )
 
 
@@ -78,6 +85,7 @@ async def escalate_to_human(
 ) -> str:
     """Escalate the user to a human agent for complex issues"""
     return "HumanAgent"
+
 
 transfer_to_invoice_agent_tool = FunctionTool(
     transfer_to_invoice_agent,

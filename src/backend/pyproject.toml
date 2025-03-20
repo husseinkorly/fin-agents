@@ -5,9 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "autogen-core>=0.4.7",
-    "autogen-ext[azure,grpc,openai]>=0.4.7",
+    "autogen-core>=0.4.9.2",
+    "autogen-ext[azure,grpc,openai]>=0.4.9.2",
+    "azure-cosmos>=4.9.0",
+    "azure-identity>=1.20.0",
     "fastapi>=0.115.8",
-    "rich>=13.9.4",
+    "python-dotenv>=1.0.1",
     "uvicorn>=0.34.0",
 ]

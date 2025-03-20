@@ -2,6 +2,8 @@ from typing import Dict, Any, List, Annotated
 from datetime import datetime
 from autogen_core.models import SystemMessage, ChatCompletionClient
 from autogen_core.tools import FunctionTool
+
+from context.session_manager import SessionManager
 from .ai import AIAgent
 
 
@@ -13,6 +15,7 @@ class PurchaseOrderAgent(AIAgent):
         model_client: ChatCompletionClient,
         user_topic_type: str,
         agent_topic_type: str,
+        sessionManager: SessionManager
     ) -> None:
         description = "An agent that handles purchase order related tasks"
         system_message = SystemMessage(
@@ -58,6 +61,7 @@ class PurchaseOrderAgent(AIAgent):
             delegate_tools=delegate_tools,
             agent_topic_type=agent_topic_type,
             user_topic_type=user_topic_type,
+            sessionManager=sessionManager,
         )
 
 

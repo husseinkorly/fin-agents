@@ -2,6 +2,8 @@ from typing import Dict, Any, List, Annotated
 from datetime import datetime
 from autogen_core.models import SystemMessage, ChatCompletionClient
 from autogen_core.tools import FunctionTool
+
+from context.session_manager import SessionManager
 from .ai import AIAgent
 
 
@@ -11,9 +13,9 @@ class InvoiceAgent(AIAgent):
         model_client: ChatCompletionClient,
         user_topic_type: str,
         agent_topic_type: str,
+        sessionManager: SessionManager,
     ) -> None:
-        description = "An agent that handles invoice related tasks"
-        # agent's system message
+        description = "An agent handles invoice related tasks"
         system_message = SystemMessage(
             content="""You are an Invoice agent and can help users with the following tasks:
                        - Finding information about their existing invoices
@@ -22,17 +24,31 @@ class InvoiceAgent(AIAgent):
                        - Return current date and time
                     
                     When creating an invoice from a purchase order, you should:
-                    1. Ask the user for the purchase order ID if not provided
-                    2. Ask for supplier details and items if they aren't clear from the context
-                    3. Create the invoice and confirm with the user
+                    1. Try to get all the necessary details from the context if possible and ask the user for any missing details
+                    2. Ask the user for the purchase order ID if not provided
+                    3. Ask for supplier details if they aren't clear from the context
+                    4. ALWAYS include line items in the invoice with their name, quantity, and price
+                    5. Create the invoice and confirm with the user
+                    
+                    When calling the create_invoice_from_po_details function, ALWAYS include the items parameter
+                    with an array of items that includes name, quantity, and price for each item.
+                    
+                    Example items format:
+                    "items": [
+                        {"name": "Deluxe Package", "quantity": 1, "price": 199.99},
+                        {"name": "Support Plan", "quantity": 1, "price": 49.99}
+                    ]
                     
                     Always confirm the invoice creation with the user before finalizing it.
 
-                    Respond concisely but professionally. Always assist users with invoice-related queries
-                    efficiently. Ask for specific details like invoice ID when needed to provide
-                    accurate information.
-
-                    For issues unrelated to invoices, transfer the user back to the orchestrator agent.
+                    IMPORTANT: For any queries unrelated to invoices, ALWAYS use the 'transfer_to_orchestrator' function with a brief reason. 
+                    Examples when to transfer:
+                    - General financial questions
+                    - Questions about purchases
+                    - User asks about other financial documents
+                    - User wants to exit invoice context
+                    
+                    Be sure to notice when the user's request is not related to invoices and use transfer_to_orchestrator in these cases.
                     """
         )
         # agent's tools
@@ -45,7 +61,7 @@ class InvoiceAgent(AIAgent):
 
         # Define delegation tools
         delegate_tools = [
-            transfer_back_to_orchestrator_tool,
+            transfer_to_orchestrator_tool,
         ]
 
         # Initialize the base AIAgent with these specifications
@@ -57,6 +73,7 @@ class InvoiceAgent(AIAgent):
             delegate_tools=delegate_tools,
             agent_topic_type=agent_topic_type,
             user_topic_type=user_topic_type,
+            sessionManager=sessionManager,
         )
 
 
@@ -114,13 +131,13 @@ async def create_invoice_from_po_details(
     po_id: Annotated[str, "ID of the purchase order to reference"],
     supplier_id: Annotated[str, "ID of the supplier"],
     supplier_name: Annotated[str, "Name of the supplier"],
-    items: Annotated[List[Dict[str, Any]], "List of items from the purchase order"],
+    items: Annotated[List[Dict[str, Any]], "List of items from the purchase order to include in the invoice"],
 ) -> Dict[str, Any]:
     """Create a new invoice based on purchase order details provided in the context or by the user"""
     # Generate invoice ID
     invoice_id = f"INV-{len(INVOICE_DATABASE) + 1:03d}"
 
-    # Calculate total
+    # Calculate total from items
     total = sum(item["quantity"] * item["price"] for item in items)
 
     # Current date and due date (30 days later)
@@ -155,7 +172,7 @@ async def create_invoice_from_po_details(
 async def transfer_to_orchestrator(
     reason: Annotated[str, "Reason for transferring back to orchestrator"],
 ) -> str:
-    """Transfer the user back to the orchestrator agent for general inquiries not related to invoices"""
+    """Transfer the conversation to the orchestrator agent for general inquiries or tasks outside invoice handling"""
     # Just return the target agent type
     return "OrchestratorAgent"
 
@@ -174,9 +191,9 @@ create_invoice_from_po_details_tool = FunctionTool(
     create_invoice_from_po_details,
     description="Create a new invoice based on purchase order details provided by the user or in context",
 )
-transfer_back_to_orchestrator_tool = FunctionTool(
+transfer_to_orchestrator_tool = FunctionTool(
     transfer_to_orchestrator,
-    description="Transfer the user back to the orchestrator agent",
+    description="Transfer the conversation to the orchestrator agent when user needs help with tasks unrelated to invoices",
 )
 
 # Mock invoice data
